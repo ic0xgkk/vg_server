@@ -1,0 +1,13 @@
+# depslib dependency file v1.0
+1522605428 source:/home/xuegao/vg_server/server.c
+	<sys/types.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<arpa/inet.h>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<unistd.h>
+	<stdint.h>
+	<netdb.h>
+
