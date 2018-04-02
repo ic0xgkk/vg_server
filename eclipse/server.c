@@ -19,6 +19,8 @@ void server_func(void *args);
 
 int main(void)
 {
+
+
   printf("\n---------------------------------------------------------");
   printf("\n                 Vehicle God Data Center                 ");
   printf("\n*********************************************************\n");
@@ -36,6 +38,7 @@ int main(void)
   }
 
   memset(&stSockAddr, 0, sizeof(struct sockaddr_in));
+
   stSockAddr.sin_family = AF_INET;
   stSockAddr.sin_port = htons(6666);  //Listen port : 6666/tcp
   stSockAddr.sin_addr.s_addr = INADDR_ANY;
@@ -68,7 +71,7 @@ int main(void)
     memset(&client_addr, 0, sizeof(struct sockaddr_in));
     memset(host, 0, sizeof(host));
     memset(service_port, 0, sizeof(service_port));
-    ConnectFD = accept(SocketFD,(struct sockaddr *)&client_addr,&addr_lenth);
+    ConnectFD = accept(SocketFD,(struct sockaddr *)&client_addr,&addr_lenth );
     if(ConnectFD < 0)
     {
       perror("ERROR:Error accept failed");
@@ -83,15 +86,18 @@ int main(void)
             memcpy( &args,&ConnectFD,sizeof(int) );
             memcpy( &args+sizeof(int),&client_addr,sizeof(client_addr) );
             memcpy( &args+sizeof(int)+sizeof(client_addr) ,&addr_lenth,sizeof(addr_lenth) );
+
             pthread_create(&thread, NULL, (void *)server_func,&args );  //创建线程
             pthread_detach(thread); // 线程分离，结束时自动回收资源
     }
-  }
-  shutdown(ConnectFD, SHUT_RDWR);
-  close(ConnectFD);
-  close(SocketFD);
-  return 0;
+   }
+   shutdown(ConnectFD, SHUT_RDWR);
+   close(ConnectFD);
+   close(SocketFD);
+   return 0;
 }
+
+
 
 void server_func(void *args)
 {
@@ -106,6 +112,7 @@ void server_func(void *args)
 
     if( getnameinfo( (struct sockaddr *)&cli_addr,16, host_pt, NI_MAXHOST,service_port_pt,NI_MAXSERV, NI_NUMERICSERV) == 0)
         printf("Reviced %lu bytes from %s:%s \n", (long)recvfrom(connfd, buffer, BUFFER_SIZE, 0,(struct sockaddr *) &cli_addr, &addr_lenth_pt) , host_pt, service_port_pt );
+
 
     while(1)
     {

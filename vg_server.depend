@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1522605428 source:/home/xuegao/vg_server/server.c
+1522663193 source:/home/xuegao/vg_server/server.c
 	<sys/types.h>
 	<sys/socket.h>
 	<netinet/in.h>
@@ -10,4 +10,8 @@
 	<unistd.h>
 	<stdint.h>
 	<netdb.h>
+	<pthread.h>
+	<time.h>
+	<sys/time.h>
+	<malloc.h>
 
