@@ -8,14 +8,32 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <netdb.h>
-#include <pthread.h>
-#include <time.h>
+
+
+#include <pthread.h>   //多线程
+
+
+#include <time.h>   //系统API读取UTC时间
+
+
 #include <sys/time.h>
 #include <malloc.h>
+#include <sys/stat.h>
 
+
+#include <fcntl.h>   //文件检查需要用到
+
+//全局定义区域
 #define BUFFER_SIZE 1024   //TCP接受的缓冲区大小
+char listen_addr[16] = "192.168.50.66";   //监听IP地址
 
+
+//自定义函数区域
 void server_func(void *args);
+int files_check(void);
+
+
+
 
 int main(void)
 {
@@ -23,22 +41,34 @@ int main(void)
   printf("\n                 Vehicle God Data Center                 ");
   printf("\n*********************************************************\n");
 
+  if ( files_check() == -1 )
+  {
+    exit(EXIT_FAILURE);
+  }
+
   static struct sockaddr_in stSockAddr;
   time_t tNow = 0;
-  int ConnectFD=0;
+  static int ConnectFD = 0;
   pthread_t thread;       //创建不同的子线程以区别不同的客户端
   int SocketFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if(-1 == SocketFD)
   {
     perror("ERROR:Can not create socket ");
+    close(SocketFD);
     exit(EXIT_FAILURE);
   }
 
   memset(&stSockAddr, 0, sizeof(struct sockaddr_in));
   stSockAddr.sin_family = AF_INET;
   stSockAddr.sin_port = htons(6666);  //Listen port : 6666/tcp
-  stSockAddr.sin_addr.s_addr = INADDR_ANY;
+
+  if( inet_aton(listen_addr,&stSockAddr.sin_addr) == 0 )
+  {
+    perror("ERROR:Convert IP address failed ");
+    close(SocketFD);
+    exit(EXIT_FAILURE);
+  }
 
   if( bind(SocketFD,(struct sockaddr *)&stSockAddr, sizeof(struct sockaddr_in)) == -1)
   {
@@ -77,7 +107,7 @@ int main(void)
     }
     if(ConnectFD > 0)
     {
-            //由于同一个进程内的所有线程共享内存和变量，因此在传递参数时需作特殊处理，值传递。
+            //由于同一个进程内的所有线程共享内存和变量，因此在传递参数时需作特殊处理值传递
             if (getnameinfo( (const struct sockaddr *)&client_addr,16, host, NI_MAXHOST,service_port,NI_MAXSERV, NI_NUMERICSERV) == 0) printf("Thread Created: Accept client from %s:%s \n", host, service_port);
             void *args=(void *)malloc( sizeof(int)+sizeof(client_addr)+sizeof(socklen_t) );
             memcpy( &args,&ConnectFD,sizeof(int) );
@@ -114,6 +144,61 @@ void server_func(void *args)
             printf("Buffer data: %s\n", buffer);
         }
     }
+}
+
+
+/* 文件存在及权限检查函数，检查 参数，数据，设备 文件是否存在，如存在检查权限是否可写，不存在会自动创建 */
+int files_check(void)
+{
+    if( access("data",0) != 0 )
+    {
+        mkdir("data",0777);
+        creat("data/parameter",0777);
+        creat("data/data",0777);
+        creat("data/device",0777);
+    }
+    else
+    {
+        if( access("data/parameter",0) != 0 )
+        {
+            creat("data/parameter",0777);
+        }
+        else
+        {
+            if( access("data/parameter",2) != 0 )
+            {
+            perror("ERROR: Cannot write data/parameter file ");
+            return -1;
+            }
+        }
+
+        if( access("data/data",0) != 0 )
+        {
+            creat("data/data",0777);
+        }
+        else
+        {
+            if( access("data/data",2) != 0 )
+            {
+            perror("ERROR: Cannot write data/data file ");
+            return -1;
+            }
+        }
+
+        if( access("data/device",0) != 0 )
+        {
+            creat("data/device",0777);
+        }
+        else
+        {
+            if( access("data/device",2) != 0 )
+            {
+            perror("ERROR: Cannot write data/device file ");
+            return -1;
+            }
+        }
+    }
+    return 1;
 }
 
 
