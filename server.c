@@ -10,6 +10,8 @@
 #include <netdb.h>
 
 
+#include <sys/mman.h>  //内存文件映射
+
 #include <pthread.h>   //多线程
 
 
@@ -18,20 +20,23 @@
 
 #include <sys/time.h>
 #include <malloc.h>
-#include <sys/stat.h>
+
+
+#include <sys/stat.h>    //文件大小判断
 
 
 #include <fcntl.h>   //文件检查需要用到
 
 //全局定义区域
 #define BUFFER_SIZE 1024   //TCP接受的缓冲区大小
-char listen_addr[16] = "192.168.50.66";   //监听IP地址
+char listen_addr[] = "192.168.50.66";   //监听IP地址
 
 
 //自定义函数区域
 void server_func(void *args);
 int files_check(void);
-
+int data_manipulation(char buffer[BUFFER_SIZE]);
+size_t file_size(char* filename);
 
 
 
@@ -48,7 +53,7 @@ int main(void)
 
   static struct sockaddr_in stSockAddr;
   time_t tNow = 0;
-  static int ConnectFD = 0;
+  int ConnectFD = 0;
   pthread_t thread;       //创建不同的子线程以区别不同的客户端
   int SocketFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -62,13 +67,7 @@ int main(void)
   memset(&stSockAddr, 0, sizeof(struct sockaddr_in));
   stSockAddr.sin_family = AF_INET;
   stSockAddr.sin_port = htons(6666);  //Listen port : 6666/tcp
-
-  if( inet_aton(listen_addr,&stSockAddr.sin_addr) == 0 )
-  {
-    perror("ERROR:Convert IP address failed ");
-    close(SocketFD);
-    exit(EXIT_FAILURE);
-  }
+  stSockAddr.sin_addr.s_addr = INADDR_ANY;
 
   if( bind(SocketFD,(struct sockaddr *)&stSockAddr, sizeof(struct sockaddr_in)) == -1)
   {
@@ -90,7 +89,7 @@ int main(void)
   char buffer[256];
   memset(buffer, 0, sizeof(buffer));
   static struct sockaddr_in client_addr;
-  socklen_t addr_lenth;
+  socklen_t addr_lenth=16;
   char host[NI_MAXHOST],service_port[NI_MAXSERV];
   while(1)
   {
@@ -134,14 +133,23 @@ void server_func(void *args)
     memcpy(&cli_addr,args+sizeof(int),sizeof(struct sockaddr) );
     memcpy(&addr_lenth_pt,args+sizeof(int)+sizeof(struct sockaddr) ,sizeof(socklen_t) );
 
-    if( getnameinfo( (struct sockaddr *)&cli_addr,16, host_pt, NI_MAXHOST,service_port_pt,NI_MAXSERV, NI_NUMERICSERV) == 0)
-        printf("Reviced %lu bytes from %s:%s \n", (long)recvfrom(connfd, buffer, BUFFER_SIZE, 0,(struct sockaddr *) &cli_addr, &addr_lenth_pt) , host_pt, service_port_pt );
+    getnameinfo( (struct sockaddr *)&cli_addr,16, host_pt, NI_MAXHOST,service_port_pt,NI_MAXSERV, NI_NUMERICSERV);
+        //printf("Reviced %lu bytes from %s:%s \n", (long)recvfrom(connfd, buffer, BUFFER_SIZE, 0,(struct sockaddr *) &cli_addr, &addr_lenth_pt) , host_pt, service_port_pt );
+    if( data_manipulation(buffer) != 0 )
+    {
+        perror("ERROR: Data manipulat failed ");
+    }
+
 
     while(1)
     {
         while( recv(connfd, buffer, sizeof(buffer),0) > 0)
         {
             printf("Buffer data: %s\n", buffer);
+            if( data_manipulation(buffer) != 0 )
+            {
+                perror("ERROR: Data manipulat failed ");
+            }
         }
     }
 }
@@ -150,55 +158,86 @@ void server_func(void *args)
 /* 文件存在及权限检查函数，检查 参数，数据，设备 文件是否存在，如存在检查权限是否可写，不存在会自动创建 */
 int files_check(void)
 {
-    if( access("data",0) != 0 )
+    if( access("parameter",0) != 0 )
     {
-        mkdir("data",0777);
-        creat("data/parameter",0777);
-        creat("data/data",0777);
-        creat("data/device",0777);
+        creat("parameter",0777);
     }
     else
     {
-        if( access("data/parameter",0) != 0 )
+        if( access("parameter",2) != 0 )
         {
-            creat("data/parameter",0777);
-        }
-        else
-        {
-            if( access("data/parameter",2) != 0 )
-            {
-            perror("ERROR: Cannot write data/parameter file ");
+            perror("ERROR: Cannot write parameter file ");
             return -1;
-            }
         }
+    }
 
-        if( access("data/data",0) != 0 )
+    if( access("data",0) != 0 )
+    {
+        creat("data",0777);
+    }
+    else
+    {
+        if( access("data",2) != 0 )
         {
-            creat("data/data",0777);
-        }
-        else
-        {
-            if( access("data/data",2) != 0 )
-            {
-            perror("ERROR: Cannot write data/data file ");
+            perror("ERROR: Cannot write data file ");
             return -1;
-            }
         }
+    }
 
-        if( access("data/device",0) != 0 )
+    if( access("device",0) != 0 )
+    {
+        creat("device",0777);
+    }
+    else
+    {
+        if( access("device",2) != 0 )
         {
-            creat("data/device",0777);
-        }
-        else
-        {
-            if( access("data/device",2) != 0 )
-            {
-            perror("ERROR: Cannot write data/device file ");
+            perror("ERROR: Cannot write device file ");
             return -1;
-            }
         }
     }
     return 1;
+}
+
+//对数据进行分离存储，以及对data文件进行内存映射
+int data_manipulation( char buffer[BUFFER_SIZE] )
+{
+    int prot = PROT_READ | PROT_WRITE;
+    int flags = MAP_SHARED;                              //对映射区域的更新给其他进程看，也同步到下层的更新
+    int fd = open("data", O_RDWR);                  //以读写方式打开文件
+    if( fd == -1 )
+    {
+        perror("ERROR: Failed to open data ");
+        return -1;
+    }
+    size_t fsize=file_size("data");
+    void *p = mmap(NULL, fsize+1024, prot, flags, fd, 0);     //从文件开始映射字节，flags为MAP_ANONYMOUS时不进行文件映射
+    int aaa=(int)p;
+    if(p == MAP_FAILED)
+    {
+        perror("ERROR: MMAP Failed ");
+        return -1;
+    }
+    strcpy(p,"aaaaaaaaaaaaa");
+
+   if( msync(p,fsize+1024,flags) == -1)
+        printf("Fuck!!");
+    close(fd);
+    munmap(p,fsize+1024);
+
+
+
+
+
+    return 0;
+}
+
+size_t file_size(char filename[])
+{
+    struct stat statbuf;
+    stat(filename,&statbuf);
+    size_t size=statbuf.st_size;
+    return size;
 }
 
 
