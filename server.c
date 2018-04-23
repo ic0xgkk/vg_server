@@ -6,7 +6,6 @@
               本程序为服务端，推荐自主编译openwrt或者lede，将其rootfs转移到SD卡分区，然后安装gcc和mak
             e等相关依赖，将服务端启动在嵌入式linux设备上边将会是一个划算又省事的方案。
 */
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -17,7 +16,8 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <netdb.h>
-
+#include <sys/socket.h>
+#include <netdb.h>
 
 #include <sys/mman.h>  //内存文件映射
 
@@ -39,12 +39,12 @@
 //全局定义区域
 #define BUFFER_SIZE 1024   //TCP接受的缓冲区大小
 #define LISTEN_PORT 6666
-//char listen_addr[] = "192.168.50.66";   //监听IP地址
+#define DEVICE_AMOUNT 32
 
 static struct device{
     char ip[16];
     int cid;
-}device_data[32];
+}device_data[DEVICE_AMOUNT];
 
 
 //自定义函数区域
@@ -54,6 +54,7 @@ int data_manipulation(char buffer[BUFFER_SIZE]);
 size_t file_size(char* filename);
 int read_device(void);
 int before_accept(struct sockaddr_in stSockAddr);
+
 
 int main(void)
 {
@@ -220,27 +221,24 @@ int read_device(void)
 
 }
 
-//报文第0位为ORI(方向位)，第2位为CID(设备标识符)，第1第3为分隔用的逗号，从第4位开始为数据位
+//报文第0位为ORI(方向位)，第1位为CID(设备标识符)，从第2位开始为数据位
 int data_manipulation( char buffer[BUFFER_SIZE] )
 {
-    if( buffer[0] == '1' )
+    if( memcmp(buffer,0xB1,1) == 0 )
     {
-        int i=0;
-        while(1)
+        int cid=0;
+        for( int i=0;i<DEVICE_AMOUNT;i++ )
         {
-            if( device_data[i].cid == buffer[2] )
+            if( device_data[i].cid == 50 )
             {
-                break;
-            }
-            else
-            {
-                i++;
+                cid = i;
             }
         }
 
         struct sockaddr_in forward_addr;
-        if( inet_aton(device_data[i].ip,&forward_addr.sin_addr) == 0 )
+        if( inet_aton(device_data[cid].ip,&forward_addr.sin_addr) == 0 )
         {
+            perror("ERROR: INET_ATON ERROR:");
             return -1;
         }
 
