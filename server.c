@@ -156,7 +156,7 @@ void server_func(void *args)
                 if( status == -2 ) continue;
             }
 
-            printf("Dispose Done.\n")
+            printf("Dispose Done.\n");
 
         }
         else
