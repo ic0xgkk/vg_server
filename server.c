@@ -54,6 +54,7 @@ int data_manipulation(char buffer[BUFFER_SIZE]);
 size_t file_size(char* filename);
 int read_device(void);
 int before_accept(struct sockaddr_in stSockAddr);
+void print_unknow_ori(uint8_t ori);
 
 
 int main(void)
@@ -147,10 +148,16 @@ void server_func(void *args)
         if( recv(connfd, buffer, sizeof(buffer),0) > 0)
         {
             printf("Buffer data: %s\n", buffer);
-            if( data_manipulation(buffer) != 1 )
+            uint8_t status=data_manipulation(buffer);
+
+            //判断帧结构是否符合定义和处理状态
+            if( status != 1 )
             {
-                perror("ERROR: Data manipulat failed ");
+                if( status == -2 ) continue;
             }
+
+            printf("Dispose Done.\n")
+
         }
         else
         {
@@ -224,8 +231,24 @@ int read_device(void)
 //报文第0位为ORI(方向位)，第1位为CID(设备标识符)，从第2位开始为数据位
 int data_manipulation( char buffer[BUFFER_SIZE] )
 {
-    if( memcmp(buffer,0xB1,1) == 0 )
+    //标志位分离
+    uint8_t orientation_sign=(uint8_t)buffer[0];
+
+    switch( orientation_sign )
     {
+        case 0xB1: //转发到补给站
+        {
+            break;
+        }
+
+        default:
+        {
+            print_unknow_ori( orientation_sign );
+            return -2;
+        }
+
+    }
+
         int cid=0;
         for( int i=0;i<DEVICE_AMOUNT;i++ )
         {
@@ -250,10 +273,6 @@ int data_manipulation( char buffer[BUFFER_SIZE] )
 
         }
 
-
-
-
-    }
 
     if( buffer[0] == '2' )
     {
@@ -300,7 +319,10 @@ int data_manipulation( char buffer[BUFFER_SIZE] )
 }
 
 */
-
+void print_unknow_ori(uint8_t ori)
+{
+    printf("WARNING: Unknow ORI sign: 0x%x.Please check the data format.\n",ori);
+}
 
 int before_accept(struct sockaddr_in stSockAddr)
 {
