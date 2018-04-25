@@ -3,6 +3,16 @@
 [![Twitter](https://img.shields.io/badge/Twitter-@Ice_Cream-blue.svg?style=flat)](http://twitter.com/ic0xgkk)
 [![Release](https://img.shields.io/github/release/ic0xgkk/vg_server.svg?style=flat)](https://github.com/ic0xgkk/vg_server)
 
+### 这是什么？
+
+这个东西叫做Vehicle God，中文名为车神。
+
+Vehicle God总共有三部分，最底层的为ESP8266模块，可以将其直接与主控相连，按照下述的报文格式向ESP8266发送，回传的数据可由主控接收；中间层为Server，负责数据采样和记录，同时负责转发数据，服务端有多线程和连接回收机制，暂时不必担心阻塞问题；用户层为Android应用，源码同样在我的GitHub，Server将数据进行分离和转发，根据Android的请求CID来决定数据的转发方向，通过这个APP来查看状态信息和调整参数。
+
+Vehicle God全套程序主要用于DJI的RoboMaster的机器人调参等使用，传统的蓝牙调参和无线串口调参问题多，缺乏标准和后期的扩展性，无线串口丢帧严重，并且无法存储数据，蓝牙调参范围太小，稳定性也不高。Vehicle God（车神）搭配一个ESP8266、STM32和Android终端来进行无线调参，还算是方便点吧。
+
+本程序为服务端，推荐使用路由器做服务端，最理想的设备是MT7621A方案的路由器，在此就不发淘宝链接了，不广告。推荐按照LEDE/OpenWRT的文档来编译固件，由于MT7621A支持SD卡，可将SD卡划分出来500M作为rootfs，在启动时直接使用SD卡分区作为根目录，划分一个稍微大一点的空间挂载起来作为数据分区，然后就可以安装gcc和make了，离线安装需要手动安装一些依赖，在此不再赘述，请自行Google。当然，你也可以使用mipsel的工具链来编译出二进制文件，不过会不会报错我并不知道（因为我没试过）。
+
 ### 特别注意
 
 **它仅仅支持Linux平台！**
