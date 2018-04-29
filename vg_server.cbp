@@ -31,6 +31,10 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="fifo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="include.h" />
 		<Unit filename="server.c">
 			<Option compilerVar="CC" />
 		</Unit>
