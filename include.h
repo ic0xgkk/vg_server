@@ -21,5 +21,41 @@
 
 //全局定义区域
 #define BUFFER_SIZE 1024   //TCP接受的缓冲区大小
-#define LISTEN_PORT 6666
-#define DEVICE_AMOUNT 32
+#define LISTEN_PORT 6666   //监听端口
+#define DEVICE_AMOUNT 32   //最大设备数量上限（即CID上限）
+#define QUEUE_DATA_SIZE BUFFER_SIZE+16   //消息队列数据分配空间
+#define MESSAGE_QUEUE_LENTH 2048   //消息队列的最大长度
+
+static struct device{
+    char ip[16];
+    uint32_t cid;
+}device_data[DEVICE_AMOUNT];
+
+//消息队列
+static struct queue_buffer{
+    uint8_t status;
+    char queue_data[QUEUE_DATA_SIZE];
+}msg_queue[MESSAGE_QUEUE_LENTH];
+
+static uint32_t enqueue_loc=0;
+
+static char blank;
+
+//自定义函数区域
+void server_func(void *args);
+int files_check(void);
+int data_manipulation(char buffer[BUFFER_SIZE]);
+size_t file_size(char* filename);
+int read_device(void);
+int before_accept(struct sockaddr_in stSockAddr);
+void print_unknow_ori(uint8_t ori);
+void initialize_queue(void);
+void queue_enqueue(char msg[]);
+
+
+
+
+
+
+
+

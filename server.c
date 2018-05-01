@@ -8,22 +8,6 @@
 */
 #include "include.h"
 
-static struct device{
-    char ip[16];
-    int cid;
-}device_data[DEVICE_AMOUNT];
-
-
-//自定义函数区域
-void server_func(void *args);
-int files_check(void);
-int data_manipulation(char buffer[BUFFER_SIZE]);
-size_t file_size(char* filename);
-int read_device(void);
-int before_accept(struct sockaddr_in stSockAddr);
-void print_unknow_ori(uint8_t ori);
-
-
 int main(void)
 {
   printf("\n---------------------------------------------------------");
@@ -41,6 +25,8 @@ int main(void)
     printf("ERROR: Read device failed.\n");
     exit(EXIT_FAILURE);
   }
+
+  initialize_queue();
 
   time_t tNow = 0;
   int ConnectFD = 0;
