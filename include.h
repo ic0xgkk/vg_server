@@ -17,7 +17,9 @@
 #include <malloc.h>
 #include <sys/stat.h>    //文件大小判断
 #include <fcntl.h>   //文件检查需要用到
-
+#include <sys/ipc.h>
+#include <sys/msg.h>   //使用Linux自带的消息队列
+#include <errno.h>
 
 //全局定义区域
 #define BUFFER_SIZE 1024   //TCP接受的缓冲区大小
@@ -31,13 +33,27 @@ static struct device{
     uint32_t cid;
 }device_data[DEVICE_AMOUNT];
 
+//Linux MQ
+struct mq_buff{
+    long mtype;
+    char mtext[80];
+};
+
+/*
 //消息队列
 static struct queue_buffer{
     uint8_t status;
     char queue_data[QUEUE_DATA_SIZE];
 }msg_queue[MESSAGE_QUEUE_LENTH];
+*/
 
-static uint32_t enqueue_loc=0;
+
+static uint32_t msgkey=1000;
+
+static uint32_t enqueue_loc=1;  //入列标识
+static uint32_t dequeue_loc=1;  //出列标识
+
+static int qid=0;
 
 static char blank;
 
@@ -49,11 +65,12 @@ size_t file_size(char* filename);
 int read_device(void);
 int before_accept(struct sockaddr_in stSockAddr);
 void print_unknow_ori(uint8_t ori);
-void initialize_queue(void);
-void queue_enqueue(char msg[]);
+void enqueue(int qid, int msgtype,char msg[]);
+void get_msg(int qid, int msgtype);
 
 
-
+uint32_t create_queue(uint32_t msgkey);
+uint32_t randomizer(void);
 
 
 

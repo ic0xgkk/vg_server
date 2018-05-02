@@ -1,11 +1,3 @@
-/* 作者：雪糕 <ic0xgkk@gmail.com>
-   首页：www.xuegaogg.com
-   关于本程序： 本程序主要用于DJI的RoboMaster的机器人调参使用，传统的蓝牙调参和无线串口调参问题参差不齐，
-            无线串口丢包严重，并且无法存储数据，蓝牙调参范围太小，稳定性也不高，故可以使用本程序搭配一个E
-            SP8266和STM32和android终端来进行无线调参，还算是方便点吧。
-              本程序为服务端，推荐自主编译openwrt或者lede，将其rootfs转移到SD卡分区，然后安装gcc和mak
-            e等相关依赖，将服务端启动在嵌入式linux设备上边将会是一个划算又省事的方案。
-*/
 #include "include.h"
 
 int main(void)
@@ -14,6 +6,29 @@ int main(void)
   printf("\n                 Vehicle God Data Center                 ");
   printf("\n                       车神数据中心                        ");
   printf("\n*********************************************************\n");
+
+  qid=create_queue( (randomizer() )%65535 );
+  for(int i=0;i<1000;i++)
+  {
+    enqueue(qid,1,"najsnajsajdgashjdgashjgdjkasgsdklhfgsdjkhfgjkshfgksdhgjksdbgjksdbjkfgbsbfsjkdbfjksdbgjksdjksaghdjk");
+    //qid++;
+  }
+//qid=qid-2;
+  for(int i=0;i<10;i++)
+  {
+    get_msg(qid,1);
+    //--;
+  }
+
+
+
+
+
+
+
+
+
+
 
   if ( files_check() == -1 )
   {
@@ -26,7 +41,6 @@ int main(void)
     exit(EXIT_FAILURE);
   }
 
-  initialize_queue();
 
   time_t tNow = 0;
   int ConnectFD = 0;

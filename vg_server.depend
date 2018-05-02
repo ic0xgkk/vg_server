@@ -1,11 +1,11 @@
 # depslib dependency file v1.0
-1525111975 source:/home/xuegao/vg_server/server.c
+1525267924 source:/home/xuegao/vg_server/server.c
 	"include.h"
 
 1525114789 source:/home/xuegao/vg_server/fifo.c
 	"include.h"
 
-1525172891 /home/xuegao/vg_server/include.h
+1525265403 /home/xuegao/vg_server/include.h
 	<sys/types.h>
 	<sys/socket.h>
 	<netinet/in.h>
@@ -25,4 +25,13 @@
 	<malloc.h>
 	<sys/stat.h>
 	<fcntl.h>
+	<sys/ipc.h>
+	<sys/msg.h>
+	<errno.h>
+
+1525265223 source:/home/xuegao/vg_server/linux_mq.c
+	"include.h"
+
+1525265930 source:/home/xuegao/vg_server/toolbox.c
+	"include.h"
 
