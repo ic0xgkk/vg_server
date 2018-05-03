@@ -7,6 +7,7 @@ int main(void)
   printf("\n                       车神数据中心                        ");
   printf("\n*********************************************************\n");
 
+
   qid=create_queue( (randomizer() )%65535 );
   for(int i=0;i<1000;i++)
   {
@@ -14,7 +15,7 @@ int main(void)
     //qid++;
   }
 //qid=qid-2;
-  for(int i=0;i<10;i++)
+  for(int i=0;i<1000;i++)
   {
     get_msg(qid,1);
     //--;

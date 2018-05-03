@@ -48,12 +48,12 @@ static struct queue_buffer{
 */
 
 
-static uint32_t msgkey=1000;
+//static uint32_t msgkey=1000;
 
 static uint32_t enqueue_loc=1;  //入列标识
 static uint32_t dequeue_loc=1;  //出列标识
 
-static int qid=0;
+static uint32_t qid=0;
 
 static char blank;
 
@@ -69,7 +69,7 @@ void enqueue(int qid, int msgtype,char msg[]);
 void get_msg(int qid, int msgtype);
 
 
-uint32_t create_queue(uint32_t msgkey);
+int32_t create_queue(uint32_t msgkey);
 uint32_t randomizer(void);
 
 

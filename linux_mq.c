@@ -16,7 +16,7 @@ int MQCommon(key_t key,int flag){
 }
 */
 
-uint32_t create_queue(uint32_t msgkey)
+int32_t create_queue(uint32_t msgkey)
 {
     return msgget(msgkey, IPC_CREAT | 0777);
     //pause();
