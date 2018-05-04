@@ -14,14 +14,6 @@ int main(void)
     enqueue(qid,1,"najsnajsajdgashjdgashjgdjkasgsdklhfgsdjkhfgjkshfgksdhgjksdbgjksdbjkfgbsbfsjkdbfjksdbgjksdjksaghdjk");
     //qid++;
   }
-//qid=qid-2;
-  for(int i=0;i<1000;i++)
-  {
-    get_msg(qid,1);
-    //--;
-  }
-
-
 
 
 
@@ -43,6 +35,7 @@ int main(void)
   }
 
 
+
   time_t tNow = 0;
   int ConnectFD = 0;
 
@@ -53,7 +46,7 @@ int main(void)
   stSockAddr.sin_addr.s_addr = INADDR_ANY;
 
   pthread_t thread;       //创建不同的子线程以区别不同的客户端
-
+  pthread_t mq_forward;
   char buffer[256];
   memset(buffer, 0, sizeof(buffer));
 
@@ -64,6 +57,9 @@ int main(void)
   socklen_t addr_lenth=16;
 
   char host[NI_MAXHOST],service_port[NI_MAXSERV];
+
+  //分出来一个线程去处理消息队列
+  pthread_create(&mq_forward, NULL, (void *)message_handling, NULL );
 
   while(1)
   {
@@ -116,15 +112,21 @@ void server_func(void *args)
         if( recv(connfd, buffer, sizeof(buffer),0) > 0)
         {
             printf("Buffer data: %s\n", buffer);
-            uint8_t status=data_manipulation(buffer);
+
+            //重头戏：消息入列
+            enqueue(qid, 1, buffer);
+
+            //uint8_t status=data_manipulation(buffer);
 
             //判断帧结构是否符合定义和处理状态
+            /*
             if( status != 1 )
             {
                 if( status == -2 ) continue;
             }
+            */
 
-            printf("Dispose Done.\n");
+            printf("Enqueue Done.\n");
 
         }
         else

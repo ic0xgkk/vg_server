@@ -28,6 +28,9 @@
 #define QUEUE_DATA_SIZE BUFFER_SIZE+16   //消息队列数据分配空间
 #define MESSAGE_QUEUE_LENTH 2048   //消息队列的最大长度
 
+#define TRUE 1
+#define FALSE 0
+
 static struct device{
     char ip[16];
     uint32_t cid;
@@ -36,7 +39,7 @@ static struct device{
 //Linux MQ
 struct mq_buff{
     long mtype;
-    char mtext[80];
+    char mtext[QUEUE_DATA_SIZE];
 };
 
 /*
@@ -55,6 +58,8 @@ static uint32_t dequeue_loc=1;  //出列标识
 
 static uint32_t qid=0;
 
+//static uint8_t forward_lock[DEVICE_AMOUNT];
+
 static char blank;
 
 //自定义函数区域
@@ -66,13 +71,15 @@ int read_device(void);
 int before_accept(struct sockaddr_in stSockAddr);
 void print_unknow_ori(uint8_t ori);
 void enqueue(int qid, int msgtype,char msg[]);
-void get_msg(int qid, int msgtype);
+void dequeue(int qid, int msgtype, char *msg_dequeue);
 
 
 int32_t create_queue(uint32_t msgkey);
 uint32_t randomizer(void);
 
+//消息处理服务
+void message_handling(void);
 
-
+int16_t rows(char file_name[]);
 
 

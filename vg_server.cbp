@@ -35,6 +35,9 @@
 		<Unit filename="linux_mq.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="message_handling.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="server.c">
 			<Option compilerVar="CC" />
 		</Unit>
