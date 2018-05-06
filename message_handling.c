@@ -2,9 +2,6 @@
 
 void message_handling(void)
 {
-//    uint16_t connection_sum=rows("device");
-//    memset( &forward_lock, 0, sizeof(uint8_t)*connection_sum );
-
     while(1)
     {
         char message[QUEUE_DATA_SIZE];
@@ -12,40 +9,77 @@ void message_handling(void)
 
         dequeue( com_qid, 1, message);
 
-        char sign;
-        memset(&sign,0xB1,sizeof(char) );  //a
+        char sign1;
+        memset(&sign1,0xB1,sizeof(char) );  //a
 
-        char sign_2;
-        memset(&sign,0x61,sizeof(char) );
-
-        if( memcmp(message,&sign,sizeof(char) ) == 0 )
+        if( memcmp(message,&sign1,sizeof(char) ) == 0 )
             forward_to_supplydepot( message );
-        if( memcmp(message,&sign_2,sizeof(char) ) == 0 )
-            test( message );
-
     }
-
-
-
-
-
 }
 
 void forward_to_supplydepot( char message[] )
 {
     char send_buf[BUFFER_SIZE];
     memset(send_buf,0,BUFFER_SIZE);
-    memcpy( send_buf, message+(sizeof(char)*3), BUFFER_SIZE );
+    memcpy(send_buf, message+(sizeof(char)*3), BUFFER_SIZE );
     send( sd_connfd, send_buf, BUFFER_SIZE-3, 0 );
-    printf("Sended to SupplyDeport: %s",send_buf);
+    syslog(LOG_INFO,"Sended to SupplyDeport: %s",send_buf);
 }
 
-void test( char message[] )
+
+/*
+//报文第0位为ORI(方向位)，第1位为CID(设备标识符)，从第2位开始为数据位
+int data_manipulation( char buffer[BUFFER_SIZE] )
 {
-    char send_buf[BUFFER_SIZE];
-    memset(send_buf,0,BUFFER_SIZE);
-    memcpy( send_buf, message+(sizeof(char)*3), BUFFER_SIZE );
-    send( sd_connfd, send_buf, BUFFER_SIZE-3, 0 );
-    printf("Sended to test: %s",send_buf);
-}
+    //标志位分离
+    uint8_t orientation_sign=(uint8_t)buffer[0];
 
+    switch( orientation_sign )
+    {
+        case 0xB1: //转发到补给站
+        {
+            break;
+        }
+
+        default:
+        {
+            print_unknow_ori( orientation_sign );
+            return -2;
+        }
+
+    }
+
+        int cid=0;
+        for( int i=0;i<DEVICE_AMOUNT;i++ )
+        {
+            if( device_data[i].cid == 50 )
+            {
+                cid = i;
+            }
+        }
+
+        struct sockaddr_in forward_addr;
+        if( inet_aton(device_data[cid].ip,&forward_addr.sin_addr) == 0 )
+        {
+            perror("ERROR: INET_ATON ERROR:");
+            return -1;
+        }
+
+        int forward_tcp_status=0;
+
+        if( forward_tcp_status == 0 )
+        {
+
+
+        }
+
+
+    if( buffer[0] == '2' )
+    {
+        printf("What the fuck????\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 1;
+}
+*/

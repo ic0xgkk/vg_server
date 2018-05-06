@@ -20,6 +20,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>   //使用Linux自带的消息队列
 #include <errno.h>
+#include <syslog.h>
 
 //全局定义区域
 #define BUFFER_SIZE 1024   //TCP接受的缓冲区大小
@@ -27,6 +28,10 @@
 #define DEVICE_AMOUNT 32   //最大设备数量上限（即CID上限）
 #define QUEUE_DATA_SIZE BUFFER_SIZE+16   //消息队列数据分配空间
 #define MESSAGE_QUEUE_LENTH 2048   //消息队列的最大长度
+
+#define DATA_BUFFER_SIZE 4096   //行进中数据回传的保存最大大小
+
+#define SUPPLYDEPORT_CID 50   //补给站的CID
 
 #define TRUE 1
 #define FALSE 0
@@ -37,42 +42,19 @@ struct mq_buff{
     char mtext[QUEUE_DATA_SIZE];
 };
 
-
-
-static struct device{
+struct device{
     char ip[16];
     uint32_t cid;
-}device_data[DEVICE_AMOUNT];
-
-
-/*
-//消息队列
-static struct queue_buffer{
-    uint8_t status;
-    char queue_data[QUEUE_DATA_SIZE];
-}msg_queue[MESSAGE_QUEUE_LENTH];
-*/
-
-
-//static uint32_t msgkey=1000;
-
-//static uint32_t enqueue_loc=1;  //入列标识
-//static uint32_t dequeue_loc=1;  //出列标识
+};
 
 extern uint32_t com_qid;
-
-//static uint8_t forward_lock[DEVICE_AMOUNT];
 extern int32_t sd_connfd;
-
-static char blank;
-
-
-
+extern struct device device_data[DEVICE_AMOUNT];
 
 //自定义函数区域
 void server_func(void *args);
 int files_check(void);
-int data_manipulation(char buffer[BUFFER_SIZE]);
+//int data_manipulation(char buffer[BUFFER_SIZE]);
 size_t file_size(char* filename);
 int read_device(void);
 int before_accept(struct sockaddr_in stSockAddr);

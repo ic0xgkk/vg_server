@@ -1,32 +1,38 @@
 #include "include.h"
+
 uint32_t com_qid;
 int32_t sd_connfd;
-
+struct device device_data[DEVICE_AMOUNT];
+void *data;
 
 int main(void)
 {
-  printf("\n---------------------------------------------------------");
-  printf("\n                 Vehicle God Data Center                 ");
-  printf("\n                       车神数据中心                        ");
-  printf("\n*********************************************************\n");
+  openlog ("vg_server", LOG_PERROR|LOG_CONS, 0);
 
+  syslog (LOG_INFO, "\n---------------------------------------------------------");
+  syslog (LOG_INFO, "\n                    Vehicle God Server                   ");
+  syslog (LOG_INFO, "\n                           车神                           ");
+  syslog (LOG_INFO, "\n*********************************************************");
+  syslog (LOG_INFO, "\n[*]vg_server Starting... \n");
 
+  //创建消息队列
   com_qid=create_queue( (randomizer() )%65535 );
+
+  data=(void *)malloc(DATA_BUFFER_SIZE*1024);
 
   if ( files_check() == -1 )
   {
+    syslog (LOG_ERR, "文件无法访问\n");
     exit(EXIT_FAILURE);
   }
 
   if( read_device() != 1 )
   {
-    printf("ERROR: Read device failed.\n");
+    syslog (LOG_ERR, "设备信息表读取错误\n");
     exit(EXIT_FAILURE);
   }
 
-
-
-  time_t tNow = 0;
+  //time_t tNow = 0;
   int ConnectFD = 0;
 
   struct sockaddr_in stSockAddr;
@@ -35,28 +41,20 @@ int main(void)
   stSockAddr.sin_port = htons(LISTEN_PORT);
   stSockAddr.sin_addr.s_addr = INADDR_ANY;
 
-  pthread_t thread;       //创建不同的子线程以区别不同的客户端
+  pthread_t thread;       //创建子线程以处理不同的客户端
   pthread_t mq_forward;
-  char buffer[256];
-  memset(buffer, 0, sizeof(buffer));
-
   char cli_ip[INET_ADDRSTRLEN];
-
-
   int SocketFD= before_accept(stSockAddr);
-
   struct sockaddr_in client_addr;
-
-  socklen_t addr_lenth=16;
-
+  socklen_t addr_lenth=32;
   char host[NI_MAXHOST],service_port[NI_MAXSERV];
 
   //分出来一个线程去处理消息队列
   pthread_create(&mq_forward, NULL, (void *)message_handling, NULL );
+  syslog(LOG_INFO,"[*]Message Queue Thread Created.\n");
 
   while(1)
   {
-    time(&tNow);
     memset(&client_addr, 0, sizeof(struct sockaddr_in));
     memset(host, 0, sizeof(host));
     memset(service_port, 0, sizeof(service_port));
@@ -64,24 +62,24 @@ int main(void)
     ConnectFD = accept(SocketFD,(struct sockaddr *)&client_addr,&addr_lenth);
     if(ConnectFD < 0)
     {
-      perror("ERROR:Error accept failed");
+      syslog(LOG_ERR,"Error accept failed: %s", strerror(errno) );
       close(SocketFD);
       exit(EXIT_FAILURE);
     }
     if(ConnectFD > 0)
     {
             //由于同一个进程内的所有线程共享内存和变量，因此在传递参数时需作特殊处理值传递
-            if (getnameinfo( (const struct sockaddr *)&client_addr,16, host, NI_MAXHOST,service_port,NI_MAXSERV, NI_NUMERICSERV) == 0)
-                printf("Thread Created: Accept client from %s:%s \n", host, service_port);
+            if (getnameinfo( (const struct sockaddr *)&client_addr,32, host, NI_MAXHOST,service_port,NI_MAXSERV, NI_NUMERICSERV) == 0)
+                syslog(LOG_INFO,"Thread Created: Accept client from %s:%s \n", host, service_port);
 
-
-            if( client_addr.sin_addr.s_addr == 838969536 )     //补给站IP需要为192.168.1.50
-                sd_connfd = ConnectFD;
+//            if( client_addr.sin_addr.s_addr == 838969536 )     //补给站IP需要为192.168.1.50
+//                sd_connfd = ConnectFD;
 
             void *args=(void *)malloc( sizeof(int)+sizeof(client_addr)+sizeof(socklen_t) );
             memcpy( &args,&ConnectFD,sizeof(int) );
             memcpy( &args+sizeof(int),&client_addr,sizeof(client_addr) );
             memcpy( &args+sizeof(int)+sizeof(client_addr) ,&addr_lenth,sizeof(addr_lenth) );
+
             pthread_create(&thread, NULL, (void *)server_func,&args );  //创建线程
             pthread_detach(thread); // 线程分离，结束时自动回收资源
     }
@@ -110,27 +108,16 @@ void server_func(void *args)
     {
         if( recv(connfd, buffer, sizeof(buffer),0) > 0)
         {
-            printf("Buffer data: %s\n", buffer);
+            syslog(LOG_INFO, "Received data: %s \n", buffer );
 
             //重头戏：消息入列
             enqueue(com_qid, 1, buffer);
 
-            //uint8_t status=data_manipulation(buffer);
-
-            //判断帧结构是否符合定义和处理状态
-            /*
-            if( status != 1 )
-            {
-                if( status == -2 ) continue;
-            }
-            */
-
-            printf("Enqueue Done.\n");
-
+            syslog(LOG_INFO, "Enqueue Done.\n");
         }
         else
         {
-            printf("Thread Closed.\n");
+            syslog(LOG_INFO, "Thread Closed.\n");
             shutdown(connfd, SHUT_RDWR);
             close(connfd);
             break;
@@ -139,7 +126,7 @@ void server_func(void *args)
 }
 
 
-/* 文件存在及权限检查函数，检查 参数，数据，设备 文件是否存在，如存在检查权限是否可写，不存在会自动创建 */
+//文件存在及权限检查函数，检查 参数，数据，设备 文件是否存在，如存在检查权限是否可写，不存在会自动创建
 int files_check(void)
 {
     if( access("parameter",0) != 0 )
@@ -150,7 +137,8 @@ int files_check(void)
     {
         if( access("parameter",2) != 0 )
         {
-            perror("ERROR: Cannot write parameter file ");
+            syslog(LOG_ERR,"Cannot write \"parameter\" file %s", strerror(errno) );
+            perror("ERROR: ");
             return -1;
         }
     }
@@ -163,7 +151,7 @@ int files_check(void)
     {
         if( access("data",2) != 0 )
         {
-            perror("ERROR: Cannot write data file ");
+            syslog(LOG_ERR,"Cannot write \"data\" file %s", strerror(errno) );
             return -1;
         }
     }
@@ -176,7 +164,7 @@ int files_check(void)
     {
         if( access("device",2) != 0 )
         {
-            perror("ERROR: Cannot write device file ");
+            syslog(LOG_ERR,"Cannot write \"device\" file %s", strerror(errno) );
             return -1;
         }
     }
@@ -195,61 +183,6 @@ int read_device(void)
     fclose(fp);
     return 1;
 
-}
-
-//报文第0位为ORI(方向位)，第1位为CID(设备标识符)，从第2位开始为数据位
-int data_manipulation( char buffer[BUFFER_SIZE] )
-{
-    //标志位分离
-    uint8_t orientation_sign=(uint8_t)buffer[0];
-
-    switch( orientation_sign )
-    {
-        case 0xB1: //转发到补给站
-        {
-            break;
-        }
-
-        default:
-        {
-            print_unknow_ori( orientation_sign );
-            return -2;
-        }
-
-    }
-
-        int cid=0;
-        for( int i=0;i<DEVICE_AMOUNT;i++ )
-        {
-            if( device_data[i].cid == 50 )
-            {
-                cid = i;
-            }
-        }
-
-        struct sockaddr_in forward_addr;
-        if( inet_aton(device_data[cid].ip,&forward_addr.sin_addr) == 0 )
-        {
-            perror("ERROR: INET_ATON ERROR:");
-            return -1;
-        }
-
-        int forward_tcp_status=0;
-
-        if( forward_tcp_status == 0 )
-        {
-
-
-        }
-
-
-    if( buffer[0] == '2' )
-    {
-        printf("What the fuck????\n");
-        exit(EXIT_FAILURE);
-    }
-
-    return 1;
 }
 
 
@@ -288,9 +221,10 @@ int data_manipulation( char buffer[BUFFER_SIZE] )
 }
 
 */
+
 void print_unknow_ori(uint8_t ori)
 {
-    printf("WARNING: Unknow ORI sign: 0x%x.Please check the data format.\n",ori);
+    syslog(LOG_WARNING,"Unknow ORI sign: 0x%x.Please check the data format.\n",ori);
 }
 
 int before_accept(struct sockaddr_in stSockAddr)
@@ -299,38 +233,29 @@ int before_accept(struct sockaddr_in stSockAddr)
 
   if(-1 == SocketFD)
   {
-    perror("ERROR:Can not create socket ");
+    syslog(LOG_ERR,"Can not create socket %s \n", strerror(errno));
     close(SocketFD);
     exit(EXIT_FAILURE);
   }
 
   if( bind(SocketFD,(struct sockaddr *)&stSockAddr, sizeof(struct sockaddr_in)) == -1 )
   {
-    perror("ERROR:Error bind failed ");
+    syslog(LOG_ERR,"Error bind failed %s \n", strerror(errno));
     close(SocketFD);
     exit(EXIT_FAILURE);
   }
-  else printf("- Bind Success.\n");
+  else syslog(LOG_INFO,"[*]Bind Success.\n");
 
 
   if( listen(SocketFD, 128) == -1 )
   {
-    perror("ERROR:Error listen failed.\n");
+    syslog(LOG_ERR,"Error listen failed %s \n", strerror(errno));
     close(SocketFD);
     exit(EXIT_FAILURE);
   }
 
-  else printf("- Listen Success.\n");
-
+  else syslog(LOG_INFO,"[*]Listen Success.\n");
   return SocketFD;
-}
-
-size_t file_size(char filename[])
-{
-    struct stat statbuf;
-    stat(filename,&statbuf);
-    size_t size=statbuf.st_size;
-    return size;
 }
 
 
