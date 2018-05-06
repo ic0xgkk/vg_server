@@ -1,4 +1,7 @@
 #include "include.h"
+uint32_t com_qid;
+int32_t sd_connfd;
+
 
 int main(void)
 {
@@ -8,20 +11,7 @@ int main(void)
   printf("\n*********************************************************\n");
 
 
-  qid=create_queue( (randomizer() )%65535 );
-  for(int i=0;i<1000;i++)
-  {
-    enqueue(qid,1,"najsnajsajdgashjdgashjgdjkasgsdklhfgsdjkhfgjkshfgksdhgjksdbgjksdbjkfgbsbfsjkdbfjksdbgjksdjksaghdjk");
-    //qid++;
-  }
-
-
-
-
-
-
-
-
+  com_qid=create_queue( (randomizer() )%65535 );
 
   if ( files_check() == -1 )
   {
@@ -50,6 +40,9 @@ int main(void)
   char buffer[256];
   memset(buffer, 0, sizeof(buffer));
 
+  char cli_ip[INET_ADDRSTRLEN];
+
+
   int SocketFD= before_accept(stSockAddr);
 
   struct sockaddr_in client_addr;
@@ -67,6 +60,7 @@ int main(void)
     memset(&client_addr, 0, sizeof(struct sockaddr_in));
     memset(host, 0, sizeof(host));
     memset(service_port, 0, sizeof(service_port));
+    memset(cli_ip, 0, sizeof(cli_ip));
     ConnectFD = accept(SocketFD,(struct sockaddr *)&client_addr,&addr_lenth);
     if(ConnectFD < 0)
     {
@@ -79,6 +73,11 @@ int main(void)
             //由于同一个进程内的所有线程共享内存和变量，因此在传递参数时需作特殊处理值传递
             if (getnameinfo( (const struct sockaddr *)&client_addr,16, host, NI_MAXHOST,service_port,NI_MAXSERV, NI_NUMERICSERV) == 0)
                 printf("Thread Created: Accept client from %s:%s \n", host, service_port);
+
+
+            if( client_addr.sin_addr.s_addr == 838969536 )     //补给站IP需要为192.168.1.50
+                sd_connfd = ConnectFD;
+
             void *args=(void *)malloc( sizeof(int)+sizeof(client_addr)+sizeof(socklen_t) );
             memcpy( &args,&ConnectFD,sizeof(int) );
             memcpy( &args+sizeof(int),&client_addr,sizeof(client_addr) );
@@ -114,7 +113,7 @@ void server_func(void *args)
             printf("Buffer data: %s\n", buffer);
 
             //重头戏：消息入列
-            enqueue(qid, 1, buffer);
+            enqueue(com_qid, 1, buffer);
 
             //uint8_t status=data_manipulation(buffer);
 

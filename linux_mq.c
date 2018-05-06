@@ -3,14 +3,14 @@
 //创建队列同时进行检查
 int32_t create_queue(uint32_t msgkey)
 {
-    int32_t qid=msgget(msgkey, IPC_CREAT|IPC_EXCL | 0777);
-    if( qid < 0 )
+    int32_t qid_tmp=msgget(msgkey, IPC_CREAT|IPC_EXCL | 0777);
+    if( qid_tmp < 0 )
     {
         printf("ERROR: Message Queue Existed.\n");
         exit(EXIT_FAILURE);
     }
     else
-        return qid;
+        return qid_tmp;
     //return msgget(msgkey, IPC_CREAT | 0777);
     //pause();
 }
@@ -55,7 +55,9 @@ void dequeue(int qid, int msgtype, char *msg_dequeue)
         else
         {
             printf("message received: %s\n", msg.mtext);
-            memcpy( msg_dequeue, msg.mtext, sizeof(msg.mtext));
+
+            strcpy( msg_dequeue, msg.mtext );
+            //memcpy( msg_dequeue, msg.mtext, sizeof(msg.mtext));
             break;
         }
     }

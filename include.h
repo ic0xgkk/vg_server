@@ -31,16 +31,19 @@
 #define TRUE 1
 #define FALSE 0
 
-static struct device{
-    char ip[16];
-    uint32_t cid;
-}device_data[DEVICE_AMOUNT];
-
 //Linux MQ
 struct mq_buff{
     long mtype;
     char mtext[QUEUE_DATA_SIZE];
 };
+
+
+
+static struct device{
+    char ip[16];
+    uint32_t cid;
+}device_data[DEVICE_AMOUNT];
+
 
 /*
 //消息队列
@@ -53,14 +56,18 @@ static struct queue_buffer{
 
 //static uint32_t msgkey=1000;
 
-static uint32_t enqueue_loc=1;  //入列标识
-static uint32_t dequeue_loc=1;  //出列标识
+//static uint32_t enqueue_loc=1;  //入列标识
+//static uint32_t dequeue_loc=1;  //出列标识
 
-static uint32_t qid=0;
+extern uint32_t com_qid;
 
 //static uint8_t forward_lock[DEVICE_AMOUNT];
+extern int32_t sd_connfd;
 
 static char blank;
+
+
+
 
 //自定义函数区域
 void server_func(void *args);
@@ -81,5 +88,5 @@ uint32_t randomizer(void);
 void message_handling(void);
 
 int16_t rows(char file_name[]);
-
-
+void forward_to_supplydepot( char message[] );
+void test( char message[] );
