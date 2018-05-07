@@ -8,12 +8,20 @@ void message_handling(void)
         memset(message, 0, QUEUE_DATA_SIZE);
 
         dequeue( com_qid, 1, message);
-
+        syslog(LOG_INFO,"Message \"%s\" in Handling... ",message);
         char sign1;
         memset(&sign1,0xB1,sizeof(char) );  //a
 
         if( memcmp(message,&sign1,sizeof(char) ) == 0 )
+        {
+            syslog(LOG_INFO,"Message ready to send to SupplyDeport...\n");
             forward_to_supplydepot( message );
+        }
+        else
+        {
+            syslog(LOG_INFO,"Message is no use.\n");
+        }
+
     }
 }
 
@@ -21,10 +29,12 @@ void forward_to_supplydepot( char message[] )
 {
     char send_buf[BUFFER_SIZE];
     memset(send_buf,0,BUFFER_SIZE);
-    memcpy(send_buf, message+(sizeof(char)*3), BUFFER_SIZE );
-    send( sd_connfd, send_buf, BUFFER_SIZE-3, 0 );
-    syslog(LOG_INFO,"Sended to SupplyDeport: %s",send_buf);
+    memcpy(send_buf, message+(sizeof(char)*3), BUFFER_SIZE-(sizeof(char)*3) );
+    syslog(LOG_INFO,"-SupplyDeport Send Buffer:\"%s\"  \n",send_buf);
+    send( sd_connfd, send_buf, BUFFER_SIZE-(sizeof(char)*3), 0 );
+    syslog(LOG_INFO,"Sended to SupplyDeport: %s \n",send_buf);
 }
+
 
 
 /*

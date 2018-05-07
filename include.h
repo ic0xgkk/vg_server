@@ -23,7 +23,7 @@
 #include <syslog.h>
 
 //全局定义区域
-#define BUFFER_SIZE 1024   //TCP接受的缓冲区大小
+#define BUFFER_SIZE 24   //TCP接受的缓冲区大小，默认1024
 #define LISTEN_PORT 6666   //监听端口
 #define DEVICE_AMOUNT 32   //最大设备数量上限（即CID上限）
 #define QUEUE_DATA_SIZE BUFFER_SIZE+16   //消息队列数据分配空间
@@ -72,3 +72,4 @@ void message_handling(void);
 int16_t rows(char file_name[]);
 void forward_to_supplydepot( char message[] );
 void test( char message[] );
+

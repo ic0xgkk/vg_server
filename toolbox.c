@@ -32,7 +32,9 @@ size_t file_size(char filename[])
     return size;
 }
 
+/*
 int Storage(char msg[])
 {
 
 }
+*/

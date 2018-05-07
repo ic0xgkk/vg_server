@@ -53,6 +53,9 @@ int main(void)
   pthread_create(&mq_forward, NULL, (void *)message_handling, NULL );
   syslog(LOG_INFO,"[*]Message Queue Thread Created.\n");
 
+  struct sockaddr_in supplydeport;
+  inet_pton( AF_INET, "192.168.1.50", &supplydeport.sin_addr );   //补给站IP转换为字节序
+
   while(1)
   {
     memset(&client_addr, 0, sizeof(struct sockaddr_in));
@@ -72,8 +75,12 @@ int main(void)
             if (getnameinfo( (const struct sockaddr *)&client_addr,32, host, NI_MAXHOST,service_port,NI_MAXSERV, NI_NUMERICSERV) == 0)
                 syslog(LOG_INFO,"Thread Created: Accept client from %s:%s \n", host, service_port);
 
-//            if( client_addr.sin_addr.s_addr == 838969536 )     //补给站IP需要为192.168.1.50
-//                sd_connfd = ConnectFD;
+            if( client_addr.sin_addr.s_addr == supplydeport.sin_addr.s_addr )     //补给站IP需要为192.168.1.50
+            {
+                syslog(LOG_INFO,"SupplyDeport added and connfd is %u \n",supplydeport.sin_addr.s_addr);
+                sd_connfd = ConnectFD;
+            }
+
 
             void *args=(void *)malloc( sizeof(int)+sizeof(client_addr)+sizeof(socklen_t) );
             memcpy( &args,&ConnectFD,sizeof(int) );
@@ -89,6 +96,7 @@ int main(void)
   close(SocketFD);
   return 0;
 }
+
 
 void server_func(void *args)
 {
