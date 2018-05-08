@@ -50,7 +50,7 @@ struct device{
 extern uint32_t com_qid;
 extern int32_t sd_connfd;
 extern struct device device_data[DEVICE_AMOUNT];
-
+extern struct sockaddr_in supplydeport;
 //自定义函数区域
 void server_func(void *args);
 int files_check(void);

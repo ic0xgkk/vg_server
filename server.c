@@ -4,6 +4,7 @@ uint32_t com_qid;
 int32_t sd_connfd;
 struct device device_data[DEVICE_AMOUNT];
 void *data;
+struct sockaddr_in supplydeport;
 
 int main(void)
 {
@@ -53,7 +54,6 @@ int main(void)
   pthread_create(&mq_forward, NULL, (void *)message_handling, NULL );
   syslog(LOG_INFO,"[*]Message Queue Thread Created.\n");
 
-  struct sockaddr_in supplydeport;
   inet_pton( AF_INET, "192.168.1.50", &supplydeport.sin_addr );   //补给站IP转换为字节序
 
   while(1)
