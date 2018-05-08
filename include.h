@@ -70,6 +70,6 @@ uint32_t randomizer(void);
 void message_handling(void);
 
 int16_t rows(char file_name[]);
-void forward_to_supplydepot( char message[] );
+void forward_to_supplydepot( char message );
 void test( char message[] );
 
