@@ -40,14 +40,14 @@ void dequeue(int qid, int msgtype, char *msg_dequeue)
         {
             if (errno != ENOMSG)
             {
-                syslog(LOG_ERR,"msgrcv error %s", strerror(errno) );
+                syslog(LOG_ERR,"Msgrcv Error %s", strerror(errno) );
                 exit(EXIT_FAILURE);
             }
             continue;
         }
         else
         {
-            syslog(LOG_INFO,"message received: %s\n",msg.mtext );
+            syslog(LOG_INFO,"Message Received: %s\n",msg.mtext );
             strcpy( msg_dequeue, msg.mtext );
             break;
         }

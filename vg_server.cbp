@@ -31,6 +31,9 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="files.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="include.h" />
 		<Unit filename="linux_mq.c">
 			<Option compilerVar="CC" />
@@ -39,6 +42,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="server.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="socket.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="toolbox.c">

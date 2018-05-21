@@ -52,6 +52,7 @@ extern int32_t sd_connfd;
 extern struct device device_data[DEVICE_AMOUNT];
 
 //自定义函数区域
+void create_socket(void);
 void server_func(void *args);
 int files_check(void);
 //int data_manipulation(char buffer[BUFFER_SIZE]);
