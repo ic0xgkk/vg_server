@@ -4,48 +4,33 @@
 //文件存在及权限检查函数，检查 参数，数据，设备 文件是否存在，如存在检查权限是否可写，不存在会自动创建
 int files_check(void)
 {
-    if( access("parameter",0) != 0 )
-    {
-        creat("parameter",0777);
-    }
-    else
-    {
-        if( access("parameter",2) != 0 )
-        {
-            syslog(LOG_ERR,"Cannot write \"parameter\" file %s", strerror(errno) );
-            perror("ERROR: ");
-            return -1;
-        }
-    }
-
-    if( access("data",0) != 0 )
-    {
-        creat("data",0777);
-    }
-    else
-    {
-        if( access("data",2) != 0 )
-        {
-            syslog(LOG_ERR,"Cannot write \"data\" file %s", strerror(errno) );
-            return -1;
-        }
-    }
-
-    if( access("device",0) != 0 )
-    {
-        creat("device",0777);
-    }
-    else
-    {
-        if( access("device",2) != 0 )
-        {
-            syslog(LOG_ERR,"Cannot write \"device\" file %s", strerror(errno) );
-            return -1;
-        }
-    }
-    return 1;
+    if( every_file_check("data") == false ||
+        every_file_check("device") == false ||
+        every_file_check("parameter") == false||
+        every_file_check(CONFIG_FILE) == false  )
+         return -1;
+    else return 1;
 }
 
+bool every_file_check(char path[])
+{
+    if( access(path,0) != 0 )
+    {
+        creat(path,0777);
+        return true;
+    }
+    else
+    {
+        if( access(path,2) != 0 )
+        {
+            syslog(LOG_ERR,"Cannot write \"%s\" file %s", path, strerror(errno) );
+            return false;
+        }
+        else return true;
+    }
+}
+
+/*
 int read_device(void)
 {
     FILE *fp=fopen("device","r");
@@ -57,9 +42,48 @@ int read_device(void)
     }
     fclose(fp);
     return 1;
+}
+*/
+
+void get_config_file(void)
+{
+    char buffer[1024];
+    FILE *conf=fopen(CONFIG_FILE, "r");
+    if( conf == NULL )
+    {
+        syslog(LOG_ERR, "Config file is blank.");
+        exit(EXIT_FAILURE);
+    }
+
+    while( !feof(conf) )
+    {
+        memset(buffer, 0, sizeof(buffer) );
+        fgets(buffer, sizeof(buffer)-1, conf);
+        syslog(LOG_INFO, "Config file a line: %s", buffer);
+        char tmp='#';
+        if( memcmp( &tmp, buffer, 1) == 0 ) continue;
+        else
+        {
+            char interface[]="interface";
+            if( memcmp(interface,buffer,9) == 0 )
+            {
+                sscanf(buffer,"interface=%s",config.interface);
+            }
+            continue;
+        }
+    }
+
+    if( config.interface == NULL
+
+        )
+    {
+        syslog(LOG_ERR, "Configuration error.");
+        exit(EXIT_FAILURE);
+    }
+
+    syslog(LOG_INFO, "Read configuration succeed.");
 
 }
-
 
 
 /*

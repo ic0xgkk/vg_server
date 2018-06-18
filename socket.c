@@ -7,21 +7,23 @@ void create_socket(void)
 
   struct sockaddr_in stSockAddr;
   memset(&stSockAddr, 0, sizeof(struct sockaddr_in));
-  stSockAddr.sin_family = AF_INET;
-  stSockAddr.sin_port = htons(LISTEN_PORT);
+  stSockAddr.sin_family = PF_INET;
+  stSockAddr.sin_port = htons(LISTEN_PORT_TCP);
   stSockAddr.sin_addr.s_addr = INADDR_ANY;
 
   pthread_t thread;       //创建子线程以处理不同的客户端
   pthread_t mq_forward;
+  pthread_t multicast;
+
   char cli_ip[INET_ADDRSTRLEN];
   int SocketFD= before_accept(stSockAddr);
   struct sockaddr_in client_addr;
   socklen_t addr_lenth=32;
   char host[NI_MAXHOST],service_port[NI_MAXSERV];
 
-  //分出来一个线程去处理消息队列
-  pthread_create(&mq_forward, NULL, (void *)message_handling, NULL );
-  syslog(LOG_INFO,"[*]Message Queue Thread Created.\n");
+  pthread_create(&multicast, NULL, (void *)multicast_send, NULL );    //分出来一个线程用来广播APP握手消息
+  pthread_create(&mq_forward, NULL, (void *)message_handling, NULL );      //分出来一个线程去处理消息队列
+  syslog(LOG_INFO,"Message Queue Thread Created.");
 
   while(1)
   {
@@ -40,7 +42,7 @@ void create_socket(void)
     {
             //由于同一个进程内的所有线程共享内存和变量，因此在传递参数时需作特殊处理值传递
             if (getnameinfo( (const struct sockaddr *)&client_addr,32, host, NI_MAXHOST,service_port,NI_MAXSERV, NI_NUMERICSERV) == 0)
-                syslog(LOG_INFO,"Thread Created: Accept client from %s:%s \n", host, service_port);
+                syslog(LOG_INFO,"Thread Created: Accept client from %s:%s", host, service_port);
 
 //            if( client_addr.sin_addr.s_addr == 838969536 )     //补给站IP需要为192.168.1.50
 //                sd_connfd = ConnectFD;
@@ -62,7 +64,7 @@ void create_socket(void)
 
 void print_unknow_ori(uint8_t ori)
 {
-    syslog(LOG_WARNING,"Unknow ORI sign: 0x%x.Please check the data format.\n",ori);
+    syslog(LOG_WARNING,"Unknow ORI sign: 0x%x.Please check the data format.",ori);
 }
 
 int before_accept(struct sockaddr_in stSockAddr)
@@ -71,31 +73,80 @@ int before_accept(struct sockaddr_in stSockAddr)
 
   if(-1 == SocketFD)
   {
-    syslog(LOG_ERR,"Can not create socket %s \n", strerror(errno));
+    syslog(LOG_ERR,"Can not create socket %s ", strerror(errno));
     close(SocketFD);
     exit(EXIT_FAILURE);
   }
 
   if( bind(SocketFD,(struct sockaddr *)&stSockAddr, sizeof(struct sockaddr_in)) == -1 )
   {
-    syslog(LOG_ERR,"Error bind failed %s \n", strerror(errno));
+    syslog(LOG_ERR,"Error bind failed %s ", strerror(errno));
     close(SocketFD);
     exit(EXIT_FAILURE);
   }
-  else syslog(LOG_INFO,"[*]Bind Success.\n");
+  else syslog(LOG_INFO,"Bind Success.");
 
 
   if( listen(SocketFD, 128) == -1 )
   {
-    syslog(LOG_ERR,"Error listen failed %s \n", strerror(errno));
+    syslog(LOG_ERR,"Error listen failed %s ", strerror(errno));
     close(SocketFD);
     exit(EXIT_FAILURE);
   }
 
-  else syslog(LOG_INFO,"[*]Listen Success.\n");
+  else syslog(LOG_INFO,"Listen Success.");
   return SocketFD;
 }
 
+
+void read_udp_src_ip(struct sockaddr *sa, char ipinfo[])
+{
+  char portstr[7];
+  char str[128];
+  struct sockaddr_in *sin = (struct sockaddr_in *)sa;
+  switch (sa->sa_family)
+  {
+    case AF_INET: //||PF_INET:   /* IPv4 */
+    {
+      inet_ntop(AF_INET, &sin->sin_addr, str, (socklen_t)sizeof(str));
+      if (ntohs(sin->sin_port) != 0)
+      {
+        snprintf(portstr, sizeof(portstr), ":%d", ntohs(sin->sin_port));
+        strcat(str, portstr);
+      }
+    }
+  }
+  strncpy(ipinfo, str, strlen(str));
+}
+
+void multicast_send(void)
+{
+  int sock, sent_status, buffer_length;
+  struct sockaddr_in addr;
+  char buffer[100];
+
+  sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (-1 == sock) /* if socket failed to initialize, exit */
+  {
+    syslog(LOG_ERR, "Failed to create socket in multicast");
+    exit(EXIT_FAILURE);
+  }
+
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(0x7F000001);
+  addr.sin_port = htons(7654);
+
+  char ipaddr[32];
+  read_udp_src_ip( (struct sockaddr*)&addr, (char *)&ipaddr);
+  buffer_length = snprintf(buffer, sizeof(buffer), "Hello World!");
+
+  sent_status = sendto(sock, buffer, buffer_length, 0,(struct sockaddr*)&addr, sizeof (struct sockaddr_in));
+  if ( sent_status< 0)
+    printf("Error sending packet: %s\n", strerror(errno));
+
+  close(sock); /* close the socket */
+}
 
 void server_func(void *args)
 {
@@ -115,16 +166,16 @@ void server_func(void *args)
     {
         if( recv(connfd, buffer, sizeof(buffer),0) > 0)
         {
-            syslog(LOG_INFO, "Received data: %s \n", buffer );
+            syslog(LOG_INFO, "Received data: %s", buffer );
 
             //重头戏：消息入列
             enqueue(com_qid, 1, buffer);
 
-            syslog(LOG_INFO, "Enqueue Done.\n");
+            syslog(LOG_INFO, "Enqueue Done.");
         }
         else
         {
-            syslog(LOG_INFO, "Thread Closed.\n");
+            syslog(LOG_INFO, "Thread Closed.");
             shutdown(connfd, SHUT_RDWR);
             close(connfd);
             break;
